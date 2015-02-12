@@ -42,8 +42,22 @@ func yearView(w http.ResponseWriter, r *http.Request, s *site, year string) {
 
 }
 
-func monthView(w http.ResponseWriter, r *http.Request, s *site, year, month string) {
+type monthPage struct {
+	Title string
+	Year  string
+	Month string
+	Days  []string
+}
 
+func monthView(w http.ResponseWriter, r *http.Request, s *site, year, month string) {
+	p := monthPage{
+		Title: fmt.Sprintf("%s-%s", year, month),
+		Year:  year,
+		Month: month,
+		Days:  s.daysForMonth(year, month),
+	}
+	t, _ := template.New("month").Parse(monthTemplate)
+	t.Execute(w, p)
 }
 
 type dayPage struct {
