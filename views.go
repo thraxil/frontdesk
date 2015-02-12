@@ -38,8 +38,20 @@ func logsHandler(w http.ResponseWriter, r *http.Request, s *site) {
 	http.Error(w, "bad request", 400)
 }
 
-func yearView(w http.ResponseWriter, r *http.Request, s *site, year string) {
+type yearPage struct {
+	Title  string
+	Year   string
+	Months []string
+}
 
+func yearView(w http.ResponseWriter, r *http.Request, s *site, year string) {
+	p := yearPage{
+		Title:  year,
+		Year:   year,
+		Months: s.monthsForYear(year),
+	}
+	t, _ := template.New("year").Parse(yearTemplate)
+	t.Execute(w, p)
 }
 
 type monthPage struct {

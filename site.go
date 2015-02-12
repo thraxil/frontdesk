@@ -73,3 +73,20 @@ func (s site) daysForMonth(year, month string) []string {
 	}
 	return entries
 }
+
+func (s site) monthsForYear(year string) []string {
+	entries := []string{}
+	err := s.db.View(func(tx *bolt.Tx) error {
+		lb := tx.Bucket([]byte("lines"))
+		yb := lb.Bucket([]byte(year))
+		yb.ForEach(func(k, v []byte) error {
+			entries = append(entries, string(k))
+			return nil
+		})
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return entries
+}

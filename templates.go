@@ -69,3 +69,24 @@ var monthTemplate = `
 </table>
 </div>
 </html>`
+
+var yearTemplate = `
+<html>
+<head>
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+</head>
+<body>
+<div class="container">
+<ol class="breadcrumb">
+  <li><a href="/">Home</a></li>
+  <li class="active">{{.Year}}</li>
+</ol>
+<h1>{{.Title}}</h1>
+<table class="table table-striped table-condensed">
+{{ range .Months }}
+<tr><td><a href="{{.}}/">{{.}}</a></td></tr>
+{{ end }}
+</table>
+</div>
+</html>`
