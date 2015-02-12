@@ -43,10 +43,8 @@ func main() {
 		conn.Raw("NAMES" + " " + cfg.Channel)
 	})
 
-	quit := make(chan bool)
 	c.HandleFunc("disconnected", func(conn *irc.Conn, line *irc.Line) {
 		fmt.Println("disconnecting")
-		quit <- true
 	})
 
 	cl := newChannelLogger(db, cfg.Channel)
@@ -55,68 +53,33 @@ func main() {
 	// this is the handler that gets triggered whenever someone posts
 	// in the channel
 	c.Handle("PRIVMSG", cl)
-
-	c.HandleFunc("NOTICE", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("NOTICE", line.Nick, line.Text())
-	})
-
 	c.HandleFunc("353", func(conn *irc.Conn, line *irc.Line) {
 		fmt.Println("353", line.Nick, line.Text())
 		fmt.Println(line.Raw)
 	})
 
-	c.HandleFunc("301", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("301 RPL_AWAY", line.Nick, line.Text())
-		fmt.Println(line.Raw)
-	})
+	// a bunch more IRC commands that we just want to print
+	// to the console if we see them
+	cmds := []string{"NOTICE", "301", "305", "306", "ACTION",
+		"QUIT", "JOIN", "PART", "AWAY", "MODE"}
 
-	c.HandleFunc("305", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("305 RPL_UNAWAY", line.Nick, line.Text())
-		fmt.Println(line.Raw)
-	})
+	for _, cmd := range cmds {
+		c.HandleFunc(cmd, func(conn *irc.Conn, line *irc.Line) {
+			fmt.Println(cmd, line.Nick, line.Text())
+		})
+	}
 
-	c.HandleFunc("306", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("306 RPL_NOAWAY", line.Nick, line.Text())
-		fmt.Println(line.Raw)
-	})
-
-	c.HandleFunc("ACTION", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("ACTION", line.Nick, line.Text())
-	})
-
-	c.HandleFunc("QUIT", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("QUIT", line.Nick, line.Text())
-	})
-
-	c.HandleFunc("JOIN", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("JOIN", line.Nick, line.Text())
-	})
-
-	c.HandleFunc("PART", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("PART", line.Nick, line.Text())
-	})
-
-	c.HandleFunc("AWAY", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("AWAY", line.Nick, line.Text())
-	})
-
-	c.HandleFunc("MODE", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("MODE", line.Nick, line.Text())
-	})
-
+	// set up our web handlers
 	http.HandleFunc("/", makeHandler(indexHandler, s))
 	http.HandleFunc("/logs/", makeHandler(logsHandler, s))
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
-	// Now we can connect
+	// connect to irc
 	if err := c.ConnectTo("irc.freenode.net"); err != nil {
 		log.Fatal(err.Error())
 	}
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), nil))
-
-	// Wait for disconnect
-	<-quit
 }
 
 type channelLogger struct {
@@ -165,10 +128,7 @@ func (cl *channelLogger) logLine(line *irc.Line) {
 	}
 
 	err = cl.db.Update(func(tx *bolt.Tx) error {
-		lines, err := tx.CreateBucketIfNotExists([]byte("lines"))
-		if err != nil {
-			return err
-		}
+		lines := tx.Bucket([]byte("lines"))
 		ybucket, err := lines.CreateBucketIfNotExists([]byte(fmt.Sprintf("%04d", year)))
 		if err != nil {
 			return err

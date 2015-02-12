@@ -13,7 +13,20 @@ type site struct {
 }
 
 func newSite(channelLogger *channelLogger, db *bolt.DB) *site {
-	return &site{channelLogger, db}
+	s := &site{channelLogger, db}
+	s.ensureBuckets()
+	return s
+}
+
+func (s *site) ensureBuckets() {
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("lines"))
+		return err
+	})
+	if err != nil {
+		log.Fatal("couldn't ensure existence of basic buckets")
+	}
+	return
 }
 
 func (s site) years() []string {
