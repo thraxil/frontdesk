@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"strings"
 
 	"github.com/boltdb/bolt"
+	irc "github.com/fluffle/goirc/client"
 )
 
 type site struct {
@@ -13,8 +15,12 @@ type site struct {
 	db            *bolt.DB
 }
 
-func newSite(channelLogger *channelLogger, userLogger *userLogger, db *bolt.DB) *site {
-	s := &site{channelLogger, userLogger, db}
+func newSite(db *bolt.DB, conn *irc.Conn, channel string) *site {
+	s := &site{db: db}
+	cl := newChannelLogger(db, channel, s)
+	ul := newUserLogger(db, conn, channel, s)
+	s.channelLogger = cl
+	s.userLogger = ul
 	s.ensureBuckets()
 	return s
 }
@@ -22,6 +28,10 @@ func newSite(channelLogger *channelLogger, userLogger *userLogger, db *bolt.DB) 
 func (s *site) ensureBuckets() {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("lines"))
+		if err != nil {
+			return err
+		}
+		_, err = tx.CreateBucketIfNotExists([]byte("online"))
 		if err != nil {
 			return err
 		}
@@ -118,6 +128,23 @@ func (s site) allKnownNicks() []string {
 			nicks = append(nicks, string(k))
 			return nil
 		})
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return nicks
+}
+
+func (s site) onlineNicks() map[string]bool {
+	var nicks map[string]bool
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("online"))
+		d := string(b.Get([]byte("now")))
+		for _, n := range strings.Split(d, " ") {
+			nicks[n] = true
+		}
 		return nil
 	})
 	if err != nil {

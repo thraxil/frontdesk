@@ -12,10 +12,11 @@ import (
 type channelLogger struct {
 	db      *bolt.DB
 	channel string
+	site    *site
 }
 
-func newChannelLogger(db *bolt.DB, channel string) *channelLogger {
-	return &channelLogger{db, channel}
+func newChannelLogger(db *bolt.DB, channel string, site *site) *channelLogger {
+	return &channelLogger{db, channel, site}
 }
 
 func (cl *channelLogger) Handle(conn *irc.Conn, line *irc.Line) {

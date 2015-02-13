@@ -14,11 +14,12 @@ type userLogger struct {
 	db      *bolt.DB
 	conn    *irc.Conn
 	channel string
+	site    *site
 	running bool
 }
 
-func newUserLogger(db *bolt.DB, conn *irc.Conn, channel string) *userLogger {
-	ul := &userLogger{db, conn, channel, false}
+func newUserLogger(db *bolt.DB, conn *irc.Conn, channel string, site *site) *userLogger {
+	ul := &userLogger{db, conn, channel, site, false}
 	go ul.run()
 	return ul
 }
@@ -37,17 +38,20 @@ func (cl *userLogger) Handle(conn *irc.Conn, line *irc.Line) {
 		log.Println(err)
 		return
 	}
-
+	nicks := strings.Split(line.Text(), " ")
 	err = cl.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("nicks"))
 
-		for _, n := range strings.Split(line.Text(), " ") {
+		for _, n := range nicks {
 			err = bucket.Put([]byte(normalizeNick(n)), data)
 			if err != nil {
 				return err
 			}
 			log.Println("logged presence of", normalizeNick(n))
 		}
+
+		online := tx.Bucket([]byte("online"))
+		err = online.Put([]byte("now"), []byte(strings.Join(nicks, " ")))
 		return err
 	})
 	if err != nil {

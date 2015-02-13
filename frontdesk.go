@@ -63,27 +63,25 @@ func main() {
 
 	c := irc.SimpleClient(cfg.Nick)
 
-	cl := newChannelLogger(db, cfg.Channel)
-	ul := newUserLogger(db, c, cfg.Channel)
-	s := newSite(cl, ul, db)
+	s := newSite(db, c, cfg.Channel)
 
 	c.HandleFunc("connected", func(conn *irc.Conn, line *irc.Line) {
 		conn.Join(cfg.Channel)
 		log.Println("connected to the channel", cfg.Channel, "as", cfg.Nick)
-		ul.start()
+		s.userLogger.start()
 	})
 
 	c.HandleFunc("disconnected", func(conn *irc.Conn, line *irc.Line) {
 		log.Println("disconnecting")
-		ul.stop()
+		s.userLogger.stop()
 		connect(c)
 	})
 
 	// this is the handler that gets triggered whenever someone posts
 	// in the channel
-	c.Handle("PRIVMSG", cl)
+	c.Handle("PRIVMSG", s.channelLogger)
 	// 353 is the response to a NAMES query
-	c.Handle("353", ul)
+	c.Handle("353", s.userLogger)
 
 	// a bunch more IRC commands that we just want to print
 	// to the console if we see them
