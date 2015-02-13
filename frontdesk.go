@@ -65,6 +65,7 @@ func main() {
 
 	s := newSite(db, c, cfg.Channel)
 
+	// setup IRC handlers
 	c.HandleFunc("connected", func(conn *irc.Conn, line *irc.Line) {
 		conn.Join(cfg.Channel)
 		log.Println("connected to the channel", cfg.Channel, "as", cfg.Nick)
@@ -80,6 +81,7 @@ func main() {
 	// this is the handler that gets triggered whenever someone posts
 	// in the channel
 	c.Handle("PRIVMSG", s.channelLogger)
+
 	// 353 is the response to a NAMES query
 	c.Handle("353", s.userLogger)
 

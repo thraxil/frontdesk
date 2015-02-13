@@ -137,13 +137,16 @@ func (s site) allKnownNicks() []string {
 }
 
 func (s site) onlineNicks() map[string]bool {
-	var nicks map[string]bool
+	nicks := map[string]bool{}
 
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("online"))
-		d := string(b.Get([]byte("now")))
-		for _, n := range strings.Split(d, " ") {
-			nicks[n] = true
+		v := b.Get([]byte("now"))
+		if v == nil {
+			return nil
+		}
+		for _, n := range strings.Split(string(v), " ") {
+			nicks[normalizeNick(n)] = true
 		}
 		return nil
 	})

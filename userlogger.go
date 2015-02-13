@@ -30,6 +30,7 @@ type nickEntry struct {
 
 // called when we get a 353 response
 func (cl *userLogger) Handle(conn *irc.Conn, line *irc.Line) {
+	previous := cl.site.onlineNicks()
 	e := nickEntry{line.Time}
 
 	data, err := json.Marshal(e)
@@ -39,6 +40,13 @@ func (cl *userLogger) Handle(conn *irc.Conn, line *irc.Line) {
 		return
 	}
 	nicks := strings.Split(line.Text(), " ")
+	for _, n := range nicks {
+		_, ok := previous[normalizeNick(n)]
+		if !ok {
+			log.Println(n, "has entered the channel")
+			log.Println("this is where we let them know if they had any messages")
+		}
+	}
 	err = cl.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("nicks"))
 
@@ -57,13 +65,11 @@ func (cl *userLogger) Handle(conn *irc.Conn, line *irc.Line) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("logged it...")
-
 }
 
 func (cl *userLogger) run() {
 	for {
-		if cl.running {
+		if cl.running && cl.conn != nil {
 			// request list of current nicks
 			cl.conn.Raw("NAMES" + " " + cl.channel)
 		}
