@@ -65,12 +65,12 @@ func main() {
 
 	c.HandleFunc("connected", func(conn *irc.Conn, line *irc.Line) {
 		conn.Join(cfg.Channel)
-		fmt.Println("connected to the channel", cfg.Channel, "as", cfg.Nick)
+		log.Println("connected to the channel", cfg.Channel, "as", cfg.Nick)
 		conn.Raw("NAMES" + " " + cfg.Channel)
 	})
 
 	c.HandleFunc("disconnected", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("disconnecting")
+		log.Println("disconnecting")
 		connect(c)
 	})
 
@@ -81,8 +81,8 @@ func main() {
 	// in the channel
 	c.Handle("PRIVMSG", cl)
 	c.HandleFunc("353", func(conn *irc.Conn, line *irc.Line) {
-		fmt.Println("353", line.Nick, line.Text())
-		fmt.Println(line.Raw)
+		log.Println("353", line.Nick, line.Text())
+		log.Println(line.Raw)
 	})
 
 	// a bunch more IRC commands that we just want to print
@@ -92,7 +92,7 @@ func main() {
 
 	for _, cmd := range cmds {
 		c.HandleFunc(cmd, func(conn *irc.Conn, line *irc.Line) {
-			fmt.Println(cmd, line.Nick, line.Text())
+			log.Println(cmd, line.Nick, line.Text())
 		})
 	}
 
