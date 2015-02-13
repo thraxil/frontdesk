@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -90,6 +91,58 @@ func dayView(w http.ResponseWriter, r *http.Request, s *site, year, month, day s
 	}
 	t, _ := template.New("day").Parse(dayTemplate)
 	t.Execute(w, p)
+}
+
+type smoketestResponse struct {
+	Status       string   `json:"status"`
+	TestClasses  int      `json:"test_classes"`
+	TestsRun     int      `json:"tests_run"`
+	TestsPassed  int      `json:"tests_passed"`
+	TestsFailed  int      `json:"tests_failed"`
+	TestsErrored int      `json:"tests_errored"`
+	Time         float64  `json:"time"`
+	ErroredTests []string `json:"errored_tests"`
+	FailedTests  []string `json:"failed_tests"`
+}
+
+func smoketestHandler(w http.ResponseWriter, r *http.Request, s *site) {
+	var status string
+	var tests int
+	if backoff == 0 {
+		status = "PASS"
+		tests = 1
+	} else {
+		status = "FAIL"
+		tests = 0
+	}
+	sr := smoketestResponse{
+		Status:       status,
+		TestClasses:  1,
+		TestsRun:     1,
+		TestsPassed:  tests,
+		TestsFailed:  1 - tests,
+		TestsErrored: 0,
+		Time:         1.0,
+	}
+
+	h := r.Header.Get("Accept")
+	if strings.Index(h, "application/json") != -1 {
+		b, _ := json.Marshal(sr)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+		return
+	}
+	smokeTemplate := `{{.Status}}
+test classes: 1
+tests run: 1
+tests passed: {{.TestsPassed}}
+tests failed: {{.TestsFailed}}
+tests errored: 0
+time: 1.0ms
+`
+	t, _ := template.New("smoketest").Parse(smokeTemplate)
+	w.Header().Set("Content-Type", "text/plain")
+	t.Execute(w, sr)
 }
 
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
