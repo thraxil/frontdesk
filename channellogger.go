@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/boltdb/bolt"
 	irc "github.com/fluffle/goirc/client"
@@ -20,15 +21,27 @@ func newChannelLogger(db *bolt.DB, channel string, site *site) *channelLogger {
 }
 
 func (cl *channelLogger) Handle(conn *irc.Conn, line *irc.Line) {
-	fmt.Println(line.Nick, line.Text())
-	fmt.Println(line.Time)
+	if strings.HasPrefix(line.Text(), "otr:") {
+		// this is off the record
+		return
+	}
 	if line.Target() == cl.channel {
 		fmt.Println("to the whole channel")
 		cl.logLine(line)
+		cl.saveUrls(line)
+		cl.saveMentions(line)
 	} else {
 		fmt.Println("to just me")
 		// process it for commands
 	}
+}
+
+func (cl *channelLogger) saveUrls(line *irc.Line) {
+
+}
+
+func (cl *channelLogger) saveMentions(line *irc.Line) {
+
 }
 
 func (cl *channelLogger) logLine(line *irc.Line) {
@@ -61,5 +74,4 @@ func (cl *channelLogger) logLine(line *irc.Line) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("logged it...")
 }

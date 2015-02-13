@@ -55,7 +55,6 @@ func (cl *userLogger) Handle(conn *irc.Conn, line *irc.Line) {
 			if err != nil {
 				return err
 			}
-			log.Println("logged presence of", normalizeNick(n))
 		}
 
 		online := tx.Bucket([]byte("online"))
