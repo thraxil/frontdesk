@@ -62,8 +62,8 @@ func linksFeedHandler(w http.ResponseWriter, r *http.Request, s *site) {
 				Created:     le.Timestamp,
 			})
 	}
-	atom, _ := feed.ToAtom()
-	w.Header().Set("Content-Type", "application/atom+xml")
+	atom, _ := feed.ToRss()
+	w.Header().Set("Content-Type", "application/rss+xml")
 	fmt.Fprintf(w, atom)
 }
 
