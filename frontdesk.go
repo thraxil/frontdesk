@@ -19,7 +19,8 @@ type config struct {
 
 	DBPath string `envconfig:"DB_PATH"`
 
-	Port int
+	Port    int
+	BaseURL string `envconfig:"BASE_URL"`
 }
 
 var backoff = 0
@@ -63,7 +64,7 @@ func main() {
 
 	c := irc.SimpleClient(cfg.Nick)
 
-	s := newSite(db, c, cfg.Channel)
+	s := newSite(db, c, cfg.Channel, cfg.BaseURL)
 
 	// setup IRC handlers
 	c.HandleFunc("connected", func(conn *irc.Conn, line *irc.Line) {
@@ -100,6 +101,7 @@ func main() {
 	http.HandleFunc("/", makeHandler(indexHandler, s))
 	http.HandleFunc("/logs/", makeHandler(logsHandler, s))
 	http.HandleFunc("/links/", makeHandler(linksHandler, s))
+	http.HandleFunc("/links/feed/", makeHandler(linksFeedHandler, s))
 	http.HandleFunc("/smoketest/", makeHandler(smoketestHandler, s))
 	http.HandleFunc("/favicon.ico", faviconHandler)
 

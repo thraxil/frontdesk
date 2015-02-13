@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"text/template"
+
+	"github.com/gorilla/feeds"
 )
 
 type indexPage struct {
@@ -35,6 +37,34 @@ func linksHandler(w http.ResponseWriter, r *http.Request, s *site) {
 	}
 	t, _ := template.New("links").Parse(linksTemplate)
 	t.Execute(w, p)
+}
+
+func linksFeedHandler(w http.ResponseWriter, r *http.Request, s *site) {
+	recentLinks := s.recentLinks()
+	if len(recentLinks) == 0 {
+		http.Error(w, "no links", 404)
+		return
+	}
+	feed := &feeds.Feed{
+		Title:       "Frontdesk Links",
+		Link:        &feeds.Link{Href: s.BaseURL + "/links/feed/"},
+		Description: "Links Feed",
+		Created:     recentLinks[0].Timestamp,
+	}
+	feed.Items = []*feeds.Item{}
+	for _, le := range recentLinks {
+		feed.Items = append(feed.Items,
+			&feeds.Item{
+				Title:       le.Title,
+				Link:        &feeds.Link{Href: le.URL},
+				Description: "<a href=\"" + s.BaseURL + le.DiscussionLink() + "\">discussion</a>",
+				Author:      &feeds.Author{Name: le.Nick},
+				Created:     le.Timestamp,
+			})
+	}
+	atom, _ := feed.ToAtom()
+	w.Header().Set("Content-Type", "application/atom+xml")
+	fmt.Fprintf(w, atom)
 }
 
 func logsHandler(w http.ResponseWriter, r *http.Request, s *site) {

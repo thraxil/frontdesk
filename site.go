@@ -15,10 +15,11 @@ type site struct {
 	channelLogger *channelLogger
 	userLogger    *userLogger
 	db            *bolt.DB
+	BaseURL       string
 }
 
-func newSite(db *bolt.DB, conn *irc.Conn, channel string) *site {
-	s := &site{db: db}
+func newSite(db *bolt.DB, conn *irc.Conn, channel, baseURL string) *site {
+	s := &site{db: db, BaseURL: baseURL}
 	cl := newChannelLogger(db, channel, s)
 	ul := newUserLogger(db, conn, channel, s)
 	s.channelLogger = cl

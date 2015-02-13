@@ -11,3 +11,4 @@ install_deps:
 	go get github.com/fluffle/goirc
 	go get github.com/kelseyhightower/envconfig
 	go get github.com/boltdb/bolt/
+	go get github.com/gorilla/feeds
