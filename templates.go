@@ -114,6 +114,7 @@ var linksTemplate = `
 <tr>
   <td><a href="{{.URL}}">{{.Title}}</a></td>
   <td><b>{{.Nick}}</b></td>
+  <td>{{.FormattedTimestamp}}<td>
   <td><a href="{{.DiscussionLink}}">discussion</a></td>
 </tr>
 {{ end }}
