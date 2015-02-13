@@ -44,7 +44,7 @@ func (cl *userLogger) Handle(conn *irc.Conn, line *irc.Line) {
 		_, ok := previous[normalizeNick(n)]
 		if !ok {
 			log.Println(n, "has entered the channel")
-			log.Println("this is where we let them know if they had any messages")
+			cl.site.deliverMessages(n, conn)
 		}
 	}
 	err = cl.db.Update(func(tx *bolt.Tx) error {

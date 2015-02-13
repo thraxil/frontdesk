@@ -42,6 +42,10 @@ func (s *site) ensureBuckets() {
 		if err != nil {
 			return err
 		}
+		_, err = tx.CreateBucketIfNotExists([]byte("mentions"))
+		if err != nil {
+			return err
+		}
 		_, err = tx.CreateBucketIfNotExists([]byte("nicks"))
 		return err
 	})
@@ -163,6 +167,19 @@ func (s site) onlineNicks() map[string]bool {
 	return nicks
 }
 
+func (s site) offlineNicks() []string {
+	allNicks := s.allKnownNicks()
+	onlineNicks := s.onlineNicks()
+	offlineNicks := []string{}
+	for _, n := range allNicks {
+		_, ok := onlineNicks[n]
+		if !ok {
+			offlineNicks = append(offlineNicks, n)
+		}
+	}
+	return offlineNicks
+}
+
 type linkEntry struct {
 	Nick      string
 	URL       string
@@ -200,7 +217,6 @@ func (s *site) saveLink(line *irc.Line, url, title string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("saved link")
 }
 
 func (s site) recentLinks() []linkEntry {
@@ -223,4 +239,42 @@ func (s site) recentLinks() []linkEntry {
 		log.Fatal(err)
 	}
 	return links
+}
+
+func (s *site) deliverMessages(nick string, conn *irc.Conn) {
+	messages := []mention{}
+	err := s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("mentions"))
+		v := b.Get([]byte(normalizeNick(nick)))
+		if v == nil {
+			return nil
+		}
+		var ms mentions
+		err := json.Unmarshal(v, &ms)
+		if err != nil {
+			return err
+		}
+		messages = ms.Mentions
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	if len(messages) == 0 {
+		return
+	}
+	// notify them
+	conn.Privmsg(nick, fmt.Sprintf("messages while you were out: %d", len(messages)))
+	for _, m := range messages {
+		conn.Privmsg(nick, fmt.Sprintf("from %s: %s", m.Nick, m.Text))
+		conn.Privmsg(nick, "<"+s.BaseURL+m.Permalink()+">")
+	}
+	// then clear them out
+	err = s.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("mentions"))
+		return b.Delete([]byte(normalizeNick(nick)))
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
