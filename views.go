@@ -22,6 +22,21 @@ func indexHandler(w http.ResponseWriter, r *http.Request, s *site) {
 	t.Execute(w, p)
 }
 
+type linksPage struct {
+	Title string
+	Links []linkEntry
+}
+
+func linksHandler(w http.ResponseWriter, r *http.Request, s *site) {
+	recentLinks := s.recentLinks()
+	p := linksPage{
+		Title: "front desk: links",
+		Links: recentLinks,
+	}
+	t, _ := template.New("links").Parse(linksTemplate)
+	t.Execute(w, p)
+}
+
 func logsHandler(w http.ResponseWriter, r *http.Request, s *site) {
 	parts := strings.Split(r.URL.String(), "/")
 	if len(parts) == 4 {

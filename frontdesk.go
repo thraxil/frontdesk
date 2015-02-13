@@ -99,6 +99,7 @@ func main() {
 	// set up our web handlers
 	http.HandleFunc("/", makeHandler(indexHandler, s))
 	http.HandleFunc("/logs/", makeHandler(logsHandler, s))
+	http.HandleFunc("/links/", makeHandler(linksHandler, s))
 	http.HandleFunc("/smoketest/", makeHandler(smoketestHandler, s))
 	http.HandleFunc("/favicon.ico", faviconHandler)
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -172,6 +173,14 @@ type linkEntry struct {
 	Timestamp time.Time
 }
 
+func (e linkEntry) FormattedTimestamp() string {
+	return e.Timestamp.Format("Mon Jan 2 15:04:05")
+}
+
+func (e linkEntry) DiscussionLink() string {
+	return fmt.Sprintf("/logs/%04d/%02d/%02d/#%s", e.Year, e.Month, e.Day, e.Key)
+}
+
 func (s *site) saveLink(line *irc.Line, url, title string) {
 	year, month, day := line.Time.Date()
 	key := line.Time.Format(time.RFC3339Nano)
@@ -191,4 +200,26 @@ func (s *site) saveLink(line *irc.Line, url, title string) {
 		log.Fatal(err)
 	}
 	log.Println("saved link")
+}
+
+func (s site) recentLinks() []linkEntry {
+	links := []linkEntry{}
+	err := s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("links"))
+		c := b.Cursor()
+		cnt := 0
+		for k, v := c.Last(); k != nil && cnt < 100; k, v = c.Prev() {
+			var le linkEntry
+			err := json.Unmarshal(v, &le)
+			if err != nil {
+				return err
+			}
+			links = append(links, le)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return links
 }
