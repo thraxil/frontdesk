@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -20,6 +21,32 @@ type config struct {
 	DBPath string `envconfig:"DB_PATH"`
 
 	Port int
+}
+
+var backoff = 0
+var max_backoff = 9
+
+func retryConnect(c *irc.Conn) error {
+	backoff_secs := time.Duration(
+		math.Pow(2, math.Min(float64(backoff), float64(max_backoff))))
+	time.Sleep(backoff_secs * time.Second)
+	// connect to irc
+	if err := c.ConnectTo("irc.freenode.net"); err != nil {
+		log.Println("connection attempt", backoff, err.Error())
+		backoff++
+		return err
+	}
+	backoff = 0
+	return nil
+}
+
+func connect(c *irc.Conn) {
+	for {
+		err := retryConnect(c)
+		if err == nil {
+			return
+		}
+	}
 }
 
 func main() {
@@ -45,6 +72,7 @@ func main() {
 
 	c.HandleFunc("disconnected", func(conn *irc.Conn, line *irc.Line) {
 		fmt.Println("disconnecting")
+		connect(c)
 	})
 
 	cl := newChannelLogger(db, cfg.Channel)
@@ -75,9 +103,7 @@ func main() {
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
 	// connect to irc
-	if err := c.ConnectTo("irc.freenode.net"); err != nil {
-		log.Fatal(err.Error())
-	}
+	connect(c)
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), nil))
 }
