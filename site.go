@@ -9,11 +9,12 @@ import (
 
 type site struct {
 	channelLogger *channelLogger
+	userLogger    *userLogger
 	db            *bolt.DB
 }
 
-func newSite(channelLogger *channelLogger, db *bolt.DB) *site {
-	s := &site{channelLogger, db}
+func newSite(channelLogger *channelLogger, userLogger *userLogger, db *bolt.DB) *site {
+	s := &site{channelLogger, userLogger, db}
 	s.ensureBuckets()
 	return s
 }
@@ -21,6 +22,10 @@ func newSite(channelLogger *channelLogger, db *bolt.DB) *site {
 func (s *site) ensureBuckets() {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("lines"))
+		if err != nil {
+			return err
+		}
+		_, err = tx.CreateBucketIfNotExists([]byte("nicks"))
 		return err
 	})
 	if err != nil {
