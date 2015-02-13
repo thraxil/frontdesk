@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/boltdb/bolt"
 	irc "github.com/fluffle/goirc/client"
@@ -32,6 +33,10 @@ func (s *site) ensureBuckets() {
 			return err
 		}
 		_, err = tx.CreateBucketIfNotExists([]byte("online"))
+		if err != nil {
+			return err
+		}
+		_, err = tx.CreateBucketIfNotExists([]byte("links"))
 		if err != nil {
 			return err
 		}
@@ -154,4 +159,36 @@ func (s site) onlineNicks() map[string]bool {
 		log.Fatal(err)
 	}
 	return nicks
+}
+
+type linkEntry struct {
+	Nick      string
+	URL       string
+	Title     string
+	Year      int
+	Month     int
+	Day       int
+	Key       string
+	Timestamp time.Time
+}
+
+func (s *site) saveLink(line *irc.Line, url, title string) {
+	year, month, day := line.Time.Date()
+	key := line.Time.Format(time.RFC3339Nano)
+	le := linkEntry{normalizeNick(line.Nick), url, title,
+		year, int(month), day, key, line.Time}
+	data, err := json.Marshal(le)
+	if err != nil {
+		log.Println("error marshalling to json")
+		log.Println(err)
+		return
+	}
+	err = s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("links"))
+		return bucket.Put([]byte(key), data)
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("saved link")
 }

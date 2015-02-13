@@ -26,18 +26,36 @@ func (cl *channelLogger) Handle(conn *irc.Conn, line *irc.Line) {
 		return
 	}
 	if line.Target() == cl.channel {
-		fmt.Println("to the whole channel")
 		cl.logLine(line)
-		cl.saveUrls(line)
-		cl.saveMentions(line)
+		go cl.saveUrls(conn, line)
+		go cl.saveMentions(line)
 	} else {
-		fmt.Println("to just me")
 		// process it for commands
 	}
 }
 
-func (cl *channelLogger) saveUrls(line *irc.Line) {
-
+func (cl *channelLogger) saveUrls(conn *irc.Conn, line *irc.Line) {
+	if !strings.HasPrefix(line.Text(), ".url") {
+		return
+	}
+	parts := strings.Split(line.Text(), " ")
+	if len(parts) == 1 {
+		conn.Privmsg(line.Nick, "syntax: .url http://example.com/ title for link")
+		return
+	}
+	url := parts[1]
+	if !strings.HasPrefix(url, "http") {
+		// doesn't look like a URL
+		conn.Privmsg(line.Nick, fmt.Sprintf("%s doesn't look like a URL", url))
+		return
+	}
+	if len(parts) == 2 {
+		conn.Privmsg(line.Nick, "syntax: .url http://example.com/ title for link")
+		return
+	}
+	title := strings.Join(parts[2:], " ")
+	cl.site.saveLink(line, url, title)
+	conn.Privmsg(line.Nick, "saved your link")
 }
 
 func (cl *channelLogger) saveMentions(line *irc.Line) {
