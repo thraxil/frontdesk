@@ -108,3 +108,20 @@ func (s site) monthsForYear(year string) []string {
 	}
 	return entries
 }
+
+// all the nicks we've ever seen.
+func (s site) allKnownNicks() []string {
+	nicks := []string{}
+	err := s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("nicks"))
+		b.ForEach(func(k, v []byte) error {
+			nicks = append(nicks, string(k))
+			return nil
+		})
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return nicks
+}
