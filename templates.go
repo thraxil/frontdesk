@@ -29,6 +29,7 @@ var dayTemplate = `
 <head>
 <title>{{.Title}}</title>
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -41,7 +42,7 @@ var dayTemplate = `
 <h1>{{.Title}}</h1>
 <table class="table table-striped table-condensed">
 {{ range .Lines }}
-<tr>
+<tr id="{{.Key}}">
   <td><a name="{{.Key}}"></a><a href="#{{.Key}}">{{.NiceTime}}</a></td>
   <td>&lt;<b>{{.Nick}}</b>&gt;</td>
   <td><tt>{{.Text}}</tt></td>
@@ -49,6 +50,18 @@ var dayTemplate = `
 {{ end }}
 </table>
 </div>
+<script>
+$(document).ready ( function () {
+	var id = location.hash.substr(1);
+	if (id) {
+     $('tr').each(function (k, e) {
+        if (e.id === id) {
+           $(e).addClass('success');
+        }
+     });
+  }
+});
+</script>
 </html>
 
 `
