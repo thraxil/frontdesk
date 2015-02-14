@@ -43,7 +43,7 @@ var dayTemplate = `
 {{ range .Lines }}
 <tr>
   <td><a name="{{.Key}}"></a><a href="#{{.Key}}">{{.NiceTime}}</a></td>
-  <td><b>{{.Nick}}</b></td>
+  <td>&lt;<b>{{.Nick}}</b>&gt;</td>
   <td><tt>{{.Text}}</tt></td>
 </tr>
 {{ end }}
