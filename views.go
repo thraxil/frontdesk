@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/abbot/go-http-auth"
 	"github.com/gorilla/feeds"
 )
 
@@ -67,21 +68,28 @@ func linksFeedHandler(w http.ResponseWriter, r *http.Request, s *site) {
 	fmt.Fprintf(w, atom)
 }
 
-func logsHandler(w http.ResponseWriter, r *http.Request, s *site) {
-	parts := strings.Split(r.URL.String(), "/")
+func logsHandlerCore(w http.ResponseWriter, s *site, parts []string) {
 	if len(parts) == 4 {
-		yearView(w, r, s, parts[2])
+		yearView(w, s, parts[2])
 		return
 	}
 	if len(parts) == 5 {
-		monthView(w, r, s, parts[2], parts[3])
+		monthView(w, s, parts[2], parts[3])
 		return
 	}
 	if len(parts) == 6 {
-		dayView(w, r, s, parts[2], parts[3], parts[4])
+		dayView(w, s, parts[2], parts[3], parts[4])
 		return
 	}
 	http.Error(w, "bad request", 400)
+}
+
+func logsHandler(w http.ResponseWriter, r *http.Request, s *site) {
+	logsHandlerCore(w, s, strings.Split(r.URL.String(), "/"))
+}
+
+func logsAuthHandler(w http.ResponseWriter, r *auth.AuthenticatedRequest, s *site) {
+	logsHandlerCore(w, s, strings.Split(r.URL.String(), "/"))
 }
 
 type yearPage struct {
@@ -90,7 +98,7 @@ type yearPage struct {
 	Months []string
 }
 
-func yearView(w http.ResponseWriter, r *http.Request, s *site, year string) {
+func yearView(w http.ResponseWriter, s *site, year string) {
 	p := yearPage{
 		Title:  year,
 		Year:   year,
@@ -107,7 +115,7 @@ type monthPage struct {
 	Days  []string
 }
 
-func monthView(w http.ResponseWriter, r *http.Request, s *site, year, month string) {
+func monthView(w http.ResponseWriter, s *site, year, month string) {
 	p := monthPage{
 		Title: fmt.Sprintf("%s-%s", year, month),
 		Year:  year,
@@ -126,7 +134,7 @@ type dayPage struct {
 	Lines []lineEntry
 }
 
-func dayView(w http.ResponseWriter, r *http.Request, s *site, year, month, day string) {
+func dayView(w http.ResponseWriter, s *site, year, month, day string) {
 	p := dayPage{
 		Title: fmt.Sprintf("%s-%s-%s", year, month, day),
 		Year:  year,

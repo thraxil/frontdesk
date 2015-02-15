@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/abbot/go-http-auth"
 	"github.com/boltdb/bolt"
 	irc "github.com/fluffle/goirc/client"
 	"github.com/kelseyhightower/envconfig"
@@ -19,8 +20,9 @@ type config struct {
 
 	DBPath string `envconfig:"DB_PATH"`
 
-	Port    int
-	BaseURL string `envconfig:"BASE_URL"`
+	Port         int
+	BaseURL      string `envconfig:"BASE_URL"`
+	HtpasswdFile string `envconfig:"HTPASSWD"`
 }
 
 var backoff = 0
@@ -64,7 +66,7 @@ func main() {
 
 	c := irc.SimpleClient(cfg.Nick)
 
-	s := newSite(db, c, cfg.Channel, cfg.BaseURL)
+	s := newSite(db, c, cfg.Channel, cfg.BaseURL, cfg.HtpasswdFile)
 
 	// setup IRC handlers
 	c.HandleFunc("connected", func(conn *irc.Conn, line *irc.Line) {
@@ -99,7 +101,14 @@ func main() {
 
 	// set up our web handlers
 	http.HandleFunc("/", makeHandler(indexHandler, s))
-	http.HandleFunc("/logs/", makeHandler(logsHandler, s))
+	if s.HtpasswdFile != "" {
+		log.Println("authentication needed")
+		secretProvider := auth.HtpasswdFileProvider(s.HtpasswdFile)
+		authenticator := auth.NewBasicAuthenticator("frontdesk", secretProvider)
+		http.HandleFunc("/logs/", authenticator.Wrap(makeAuthHandler(logsAuthHandler, s)))
+	} else {
+		http.HandleFunc("/logs/", makeHandler(logsHandler, s))
+	}
 	http.HandleFunc("/links/", makeHandler(linksHandler, s))
 	http.HandleFunc("/links/feed/", makeHandler(linksFeedHandler, s))
 	http.HandleFunc("/smoketest/", makeHandler(smoketestHandler, s))
@@ -133,6 +142,13 @@ func normalizeNick(n string) string {
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, *site), s *site) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("%s %s\n", r.Method, r.URL.String())
+		fn(w, r, s)
+	}
+}
+
+func makeAuthHandler(fn func(http.ResponseWriter, *auth.AuthenticatedRequest, *site), s *site) auth.AuthenticatedHandlerFunc {
+	return func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 		log.Printf("%s %s\n", r.Method, r.URL.String())
 		fn(w, r, s)
 	}
