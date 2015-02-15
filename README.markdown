@@ -126,3 +126,37 @@ that frontdesk still has some problems with:
   address and, if someone mentions them while they're not in the
   channel, frontdesk can email them instead of delivering the message
   when they come back online.
+
+## Build/Install
+
+First, [install Go](https://golang.org/doc/install) and make sure you
+have your `GOPATH`, etc set up properly (if you can compile a hello
+world, you're fine).
+
+Install the dependencies with:
+
+    $ make install_deps
+
+If, for some reason, you don't have `make` available on your system,
+you can look in the `Makefile` and just run those `go get` commands
+manually.
+
+To compile:
+
+   $ make
+
+Or just
+
+   $ go build .
+
+That will leave a binary names `frontdesk` in the current
+directory. Copy it to whereever you want to run the bot and configure
+and run it.
+
+If you're doing development, you'll want to test it. For that, there's
+a
+
+    $ make run
+
+command that will build it and run it with the configuration specified
+in the `.env` file, which points at a testing channel.
