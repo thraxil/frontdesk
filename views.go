@@ -63,7 +63,6 @@ func searchHandler(w http.ResponseWriter, r *http.Request, s *site) {
 				break
 			}
 			keys = append(keys, m.ID)
-
 		}
 
 		lines := s.getLines(keys)

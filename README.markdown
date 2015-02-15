@@ -7,6 +7,8 @@ A helpful IRC bot.
 Frontdesk sits in your IRC channel and does some basic helpful things:
 
 * it logs the channel and exposes those logs through a web interface
+* it maintains a searchable index of the chat logs and a web interface
+  for searching.
 * it saves links that are posted to the channel and exposes those
   through a web interface and RSS feed
 * if someone in the channel mentions someone that isn't currently
@@ -34,7 +36,6 @@ recent links page in the web interface and in the RSS feed.
 
 If you start a line in IRC with `otr:`, front desk will consider it
 off the record and not log it.
-
 
 ### Smoketest
 
@@ -69,6 +70,12 @@ The nick to use. Try to pick something unique
 Frontdesk uses a boltdb file to store data. This will need to be in a
 directory that the user running frontdesk can write to.
 
+### FRONTDESK_BLEVE_PATH
+
+Frontdesk uses [bleve](http://www.blevesearch.com/) for full-text
+search indexing. This variable configures the location for bleve to
+store its index. Again, needs to be writable by the frontdesk user.
+
 ### FRONTDESK_PORT
 
 port for the web interface to listen on
@@ -76,6 +83,13 @@ port for the web interface to listen on
 ### FRONTDESK_BASE_URL
 
 URL base for links.
+
+### FRONTDESK_HTPASSWD
+
+If this is configured, it will look for an htpasswd file at this
+location and use that to set up HTTP Basic auth for the chat
+logs. (The assumption is that you still want your links page open to
+the public)
 
 ## Bugs/Issues
 
