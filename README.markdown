@@ -160,3 +160,13 @@ a
 
 command that will build it and run it with the configuration specified
 in the `.env` file, which points at a testing channel.
+
+You can run the unit tests with
+
+    $ make test
+
+and get a test coverage report with
+
+    $ make coverage
+
+(it will write it out to `coverage.html`)

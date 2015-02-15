@@ -1,3 +1,5 @@
 frontdesk
 data.db
 index.bleve
+coverage.out
+coverage.html
