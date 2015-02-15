@@ -28,12 +28,12 @@ type config struct {
 }
 
 var backoff = 0
-var max_backoff = 9
+var maxBackoff = 9
 
 func retryConnect(c *irc.Conn) error {
-	backoff_secs := time.Duration(
-		math.Pow(2, math.Min(float64(backoff), float64(max_backoff))))
-	time.Sleep(backoff_secs * time.Second)
+	backoffSecs := time.Duration(
+		math.Pow(2, math.Min(float64(backoff), float64(maxBackoff))))
+	time.Sleep(backoffSecs * time.Second)
 	// connect to irc
 	if err := c.ConnectTo("irc.freenode.net"); err != nil {
 		log.Println("connection attempt", backoff, err.Error())
