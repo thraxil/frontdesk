@@ -13,3 +13,4 @@ install_deps:
 	go get github.com/boltdb/bolt/
 	go get github.com/gorilla/feeds
 	go get github.com/abbot/go-http-auth
+	go get github.com/blevesearch/bleve

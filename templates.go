@@ -8,17 +8,19 @@ var indexTemplate = `
 </head>
 <body>
 <div class="container">
+<ol class="breadcrumb">
+  <li class="active">Home</li>
+</ol>
+
 <h1>{{.Title}}</h1>
 
-<h2>Recent Links</h2>
-<p><a href="/links/">here</a></p>
-
-<h2>Full Chat Logs</h2>
-<table class="table">
+<div class="list-group">
+<a class="list-group-item" href="/links/">Recent Links</a>
+<a class="list-group-item" href="/search/">Search</a>
 {{ range .Years }}
-<tr><th><a href="/logs/{{ . }}/">{{ . }}</a></th></tr>
+<a class="list-group-item" href="/logs/{{ . }}/">Full Chat Logs {{ . }}</a>
 {{ end }}
-</table>
+</div>
 </div>
 </html>
 
@@ -64,6 +66,69 @@ $(document).ready ( function () {
 </script>
 </html>
 
+`
+
+var searchTemplate = `
+<html>
+<head>
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+</head>
+<body>
+<div class="container">
+<ol class="breadcrumb">
+  <li><a href="/">Home</a></li>
+  <li class="active">Search</li>
+</ol>
+<h1>{{.Title}}</h1>
+
+<form action="." method="get" class="form-inline">
+<div class="form-group">
+<input type="text" name="q" value="{{.Query}}" class="form-control"/>
+<input type="submit" value="search" class="btn btn-primary" />
+</div>
+</form>
+<p>{{.Results.Total}} Hits</p>
+<table class="table table-striped table-condensed">
+{{ range .Lines }}
+<tr>
+  <td><a href="{{.Permalink}}">{{.Timestamp.Month}} {{.Timestamp.Day}} {{.Timestamp.Year}}  {{.NiceTime}}</a></td>
+  <td>&lt;<b>{{.Nick}}</b>&gt;</td>
+  <td><tt>{{.Text}}</tt></td>
+</tr>
+
+{{ end }}
+</table>
+
+</div>
+</html>
+`
+
+var emptySearchTemplate = `
+<html>
+<head>
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+</head>
+<body>
+<div class="container">
+<ol class="breadcrumb">
+  <li><a href="/">Home</a></li>
+  <li class="active">Search</li>
+</ol>
+<h1>{{.Title}}</h1>
+
+<form action="." method="get" class="form-inline">
+<div class="form-group">
+<input type="text" name="q" value="" class="form-control"/>
+<input type="submit" value="search" class="btn btn-primary" />
+</div>
+</form>
+</div>
+</body>
+</html>
 `
 
 var monthTemplate = `

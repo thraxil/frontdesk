@@ -151,4 +151,5 @@ func (cl *channelLogger) logLine(line *irc.Line) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	cl.site.indexLine(line)
 }

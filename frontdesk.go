@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/abbot/go-http-auth"
+	"github.com/blevesearch/bleve"
 	"github.com/boltdb/bolt"
 	irc "github.com/fluffle/goirc/client"
 	"github.com/kelseyhightower/envconfig"
@@ -18,7 +19,8 @@ type config struct {
 	Channel string
 	Nick    string
 
-	DBPath string `envconfig:"DB_PATH"`
+	DBPath    string `envconfig:"DB_PATH"`
+	BlevePath string `envconfig:"BLEVE_PATH"`
 
 	Port         int
 	BaseURL      string `envconfig:"BASE_URL"`
@@ -64,9 +66,26 @@ func main() {
 	}
 	defer db.Close()
 
+	index, err := bleve.Open(cfg.BlevePath)
+	if err == bleve.ErrorIndexPathDoesNotExist {
+		log.Println("Creating new index")
+		indexMapping, err := buildIndexMapping()
+		if err != nil {
+			log.Fatal(err)
+		}
+		index, err = bleve.New(cfg.BlevePath, indexMapping)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else if err != nil {
+		log.Fatal(err)
+	} else {
+		log.Println("opening existing index")
+	}
+
 	c := irc.SimpleClient(cfg.Nick)
 
-	s := newSite(db, c, cfg.Channel, cfg.BaseURL, cfg.HtpasswdFile)
+	s := newSite(db, index, c, cfg.Channel, cfg.BaseURL, cfg.HtpasswdFile)
 
 	// setup IRC handlers
 	c.HandleFunc("connected", func(conn *irc.Conn, line *irc.Line) {
@@ -111,6 +130,7 @@ func main() {
 	}
 	http.HandleFunc("/links/", makeHandler(linksHandler, s))
 	http.HandleFunc("/links/feed/", makeHandler(linksFeedHandler, s))
+	http.HandleFunc("/search/", makeHandler(searchHandler, s))
 	http.HandleFunc("/smoketest/", makeHandler(smoketestHandler, s))
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
@@ -132,6 +152,11 @@ func (l lineEntry) Key() string {
 
 func (l lineEntry) NiceTime() string {
 	return l.Timestamp.Format("15:04:05")
+}
+
+func (l lineEntry) Permalink() string {
+	return fmt.Sprintf("/logs/%04d/%02d/%02d/#%s", l.Timestamp.Year(),
+		l.Timestamp.Month(), l.Timestamp.Day(), l.Key())
 }
 
 // IRC likes to rename 'foo' to 'foo_', etc.

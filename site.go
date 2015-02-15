@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blevesearch/bleve"
 	"github.com/boltdb/bolt"
 	irc "github.com/fluffle/goirc/client"
 )
@@ -15,12 +16,13 @@ type site struct {
 	channelLogger *channelLogger
 	userLogger    *userLogger
 	db            *bolt.DB
+	index         bleve.Index
 	BaseURL       string
 	HtpasswdFile  string
 }
 
-func newSite(db *bolt.DB, conn *irc.Conn, channel, baseURL, htpasswdFile string) *site {
-	s := &site{db: db, BaseURL: baseURL, HtpasswdFile: htpasswdFile}
+func newSite(db *bolt.DB, index bleve.Index, conn *irc.Conn, channel, baseURL, htpasswdFile string) *site {
+	s := &site{db: db, index: index, BaseURL: baseURL, HtpasswdFile: htpasswdFile}
 	cl := newChannelLogger(db, channel, s)
 	ul := newUserLogger(db, conn, channel, s)
 	s.channelLogger = cl
@@ -88,6 +90,37 @@ func (s site) linesForDay(year, month, day string) []lineEntry {
 			entries = append(entries, e)
 			return nil
 		})
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return entries
+}
+
+func (s site) getLines(keys []string) []lineEntry {
+	entries := []lineEntry{}
+	err := s.db.View(func(tx *bolt.Tx) error {
+		lb := tx.Bucket([]byte("lines"))
+		for _, k := range keys {
+			t, err := time.Parse(time.RFC3339Nano, k)
+			if err != nil {
+				continue
+			}
+			yb := lb.Bucket([]byte(fmt.Sprintf("%04d", t.Year())))
+			mb := yb.Bucket([]byte(fmt.Sprintf("%02d", t.Month())))
+			db := mb.Bucket([]byte(fmt.Sprintf("%02d", t.Day())))
+			v := db.Get([]byte(k))
+			if v == nil {
+				continue
+			}
+			var e lineEntry
+			err = json.Unmarshal(v, &e)
+			if err != nil {
+				continue
+			}
+			entries = append(entries, e)
+		}
 		return nil
 	})
 	if err != nil {
@@ -275,6 +308,16 @@ func (s *site) deliverMessages(nick string, conn *irc.Conn) {
 		b := tx.Bucket([]byte("mentions"))
 		return b.Delete([]byte(normalizeNick(nick)))
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (s *site) indexLine(line *irc.Line) {
+	le := lineEntry{normalizeNick(line.Nick), line.Text(), line.Time}
+	err := s.index.Index(le.Key(), le)
+
+	log.Println(s.index.DocCount())
 	if err != nil {
 		log.Fatal(err)
 	}

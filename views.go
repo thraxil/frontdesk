@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/abbot/go-http-auth"
+	"github.com/blevesearch/bleve"
 	"github.com/gorilla/feeds"
 )
 
@@ -38,6 +39,47 @@ func linksHandler(w http.ResponseWriter, r *http.Request, s *site) {
 	}
 	t, _ := template.New("links").Parse(linksTemplate)
 	t.Execute(w, p)
+}
+
+type searchResultsPage struct {
+	Title   string
+	Query   string
+	Results *bleve.SearchResult
+	Lines   []lineEntry
+}
+
+func searchHandler(w http.ResponseWriter, r *http.Request, s *site) {
+	q := r.FormValue("q")
+	maxResults := 50
+
+	if q != "" {
+		query := bleve.NewQueryStringQuery(q)
+		searchRequest := bleve.NewSearchRequest(query)
+		searchResult, _ := s.index.Search(searchRequest)
+
+		keys := []string{}
+		for i, m := range searchResult.Hits {
+			if i >= maxResults {
+				break
+			}
+			keys = append(keys, m.ID)
+
+		}
+
+		lines := s.getLines(keys)
+
+		p := searchResultsPage{
+			Title:   fmt.Sprintf("search results for \"%s\"", q),
+			Query:   q,
+			Results: searchResult,
+			Lines:   lines,
+		}
+		t, _ := template.New("search").Parse(searchTemplate)
+		t.Execute(w, p)
+	} else {
+		t, _ := template.New("search").Parse(emptySearchTemplate)
+		t.Execute(w, struct{ Title string }{"Search"})
+	}
 }
 
 func linksFeedHandler(w http.ResponseWriter, r *http.Request, s *site) {
