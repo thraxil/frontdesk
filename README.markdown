@@ -143,11 +143,11 @@ manually.
 
 To compile:
 
-   $ make
+    $ make
 
 Or just
 
-   $ go build .
+    $ go build .
 
 That will leave a binary names `frontdesk` in the current
 directory. Copy it to whereever you want to run the bot and configure
