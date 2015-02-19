@@ -62,7 +62,9 @@ func (cl *channelLogger) saveUrls(conn *irc.Conn, line *irc.Line) {
 func (cl *channelLogger) saveMentions(conn *irc.Conn, line *irc.Line) {
 	nicksToCheck := cl.site.offlineNicks()
 	for _, n := range nicksToCheck {
-		if strings.Index(line.Text(), n) != -1 {
+		if (strings.Contains(line.Text(), n + ": ") ||
+			strings.Contains(line.Text(), n + " ")
+		) {
 			// offline user was mentioned
 			cl.saveMention(n, line, conn)
 		}
