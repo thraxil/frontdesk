@@ -10,6 +10,9 @@ import (
 	"github.com/blevesearch/bleve"
 	"github.com/boltdb/bolt"
 	irc "github.com/fluffle/goirc/client"
+	"github.com/garyburd/go-oauth/oauth"
+	"github.com/thraxil/bitly"
+	"github.com/xiam/twitter"
 )
 
 type site struct {
@@ -19,10 +22,25 @@ type site struct {
 	index         bleve.Index
 	BaseURL       string
 	HtpasswdFile  string
+
+	BitlyAccessToken      string
+	TwitterOauthToken     string
+	TwitterOauthSecret    string
+	TwitterConsumerKey    string
+	TwitterConsumerSecret string
 }
 
-func newSite(db *bolt.DB, index bleve.Index, conn *irc.Conn, channel, baseURL, htpasswdFile string) *site {
-	s := &site{db: db, index: index, BaseURL: baseURL, HtpasswdFile: htpasswdFile}
+func newSite(db *bolt.DB, index bleve.Index, conn *irc.Conn, channel, baseURL, htpasswdFile,
+	bitlyAccessToken, twitterOauthToken, twitterOauthSecret, twitterConsumerKey,
+	twitterConsumerSecret string) *site {
+	s := &site{
+		db: db, index: index, BaseURL: baseURL, HtpasswdFile: htpasswdFile,
+		BitlyAccessToken:      bitlyAccessToken,
+		TwitterOauthToken:     twitterOauthToken,
+		TwitterOauthSecret:    twitterOauthSecret,
+		TwitterConsumerKey:    twitterConsumerKey,
+		TwitterConsumerSecret: twitterConsumerSecret,
+	}
 	cl := newChannelLogger(db, channel, s)
 	ul := newUserLogger(db, conn, channel, s)
 	s.channelLogger = cl
@@ -251,6 +269,62 @@ func (s *site) saveLink(line *irc.Line, url, title string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (s site) shortenLink(url string) string {
+	if s.BitlyAccessToken == "" {
+		// no bitly access key. can't shorten
+		return url
+	}
+	c := bitly.NewConnection(s.BitlyAccessToken)
+	bitlyLink, err := c.Shorten(url)
+	if err != nil {
+		log.Println(err)
+		// TODO: inform the user that we couldn't shorten their link
+		return url
+	}
+	return bitlyLink
+}
+
+func twitterHandleFromNick(nick string) string {
+	// TODO: not really implemented yet.
+	// need to get the list from a config file.
+	// for now, just stick an '@` on there...
+	return "@" + nick
+}
+
+func (s *site) tweetLink(nick, url, title string) {
+	if s.TwitterOauthToken == "" {
+		// twitter isn't configured, so we can't tweet
+		return
+	}
+	// shorten the link
+	url = s.shortenLink(url)
+	log.Println("shortened:", url)
+
+	client := twitter.New(&oauth.Credentials{
+		s.TwitterConsumerKey,
+		s.TwitterConsumerSecret,
+	})
+	client.SetAuth(&oauth.Credentials{
+		s.TwitterOauthToken,
+		s.TwitterOauthSecret,
+	})
+	_, err := client.VerifyCredentials(nil)
+	if err != nil {
+		log.Println("twitter credentials are bad")
+		log.Println(err)
+		// TODO: let user know that credentials are bad
+		return
+	}
+	_, err = client.Update(fmt.Sprintf("%s: %s via %s", url, title,
+		twitterHandleFromNick(normalizeNick(nick))), nil)
+	if err != nil {
+		log.Println("failed to tweet")
+		log.Println(err)
+		return
+	}
+	log.Println("successfully tweeted")
 }
 
 func (s site) recentLinks() []linkEntry {

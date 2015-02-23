@@ -56,6 +56,7 @@ func (cl *channelLogger) saveUrls(conn *irc.Conn, line *irc.Line) {
 	}
 	title := strings.Join(parts[2:], " ")
 	cl.site.saveLink(line, url, title)
+	cl.site.tweetLink(line.Nick, url, title)
 	conn.Privmsg(line.Nick, "saved your link")
 }
 

@@ -25,6 +25,12 @@ type config struct {
 	Port         int
 	BaseURL      string `envconfig:"BASE_URL"`
 	HtpasswdFile string `envconfig:"HTPASSWD"`
+
+	BitlyAccessToken      string `envconfig:"BITLY_ACCESS_TOKEN"`
+	TwitterOauthToken     string `envconfig:"TWITTER_OAUTH_TOKEN"`
+	TwitterOauthSecret    string `envconfig:"TWITTER_OAUTH_SECRET"`
+	TwitterConsumerKey    string `envconfig:"TWITTER_CONSUMER_KEY"`
+	TwitterConsumerSecret string `envconfig:"TWITTER_CONSUMER_SECRET"`
 }
 
 var backoff = 0
@@ -85,7 +91,12 @@ func main() {
 
 	c := irc.SimpleClient(cfg.Nick)
 
-	s := newSite(db, index, c, cfg.Channel, cfg.BaseURL, cfg.HtpasswdFile)
+	s := newSite(db, index, c, cfg.Channel, cfg.BaseURL, cfg.HtpasswdFile,
+		cfg.BitlyAccessToken,
+
+		cfg.TwitterOauthToken, cfg.TwitterOauthSecret,
+		cfg.TwitterConsumerKey, cfg.TwitterConsumerSecret,
+	)
 
 	// setup IRC handlers
 	c.HandleFunc("connected", func(conn *irc.Conn, line *irc.Line) {
