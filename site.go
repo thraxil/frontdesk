@@ -317,8 +317,18 @@ func (s *site) tweetLink(nick, url, title string) {
 		// TODO: let user know that credentials are bad
 		return
 	}
-	_, err = client.Update(fmt.Sprintf("%s: %s via %s", url, title,
-		twitterHandleFromNick(normalizeNick(nick))), nil)
+	tweet := fmt.Sprintf("%s: %s via %s", url, title,
+		twitterHandleFromNick(normalizeNick(nick)))
+	chars := len(tweet)
+	if chars > 140 {
+		ellipsis := "..."
+		truncate := chars + len(ellipsis) - 140
+		truncatedTitle := title[:len(title)-truncate]
+		tweet = fmt.Sprintf("%s: %s via %s", url, truncatedTitle,
+			twitterHandleFromNick(normalizeNick(nick)))
+	}
+
+	_, err = client.Update(tweet, nil)
 	if err != nil {
 		log.Println("failed to tweet")
 		log.Println(err)
