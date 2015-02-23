@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ type site struct {
 	index         bleve.Index
 	BaseURL       string
 	HtpasswdFile  string
+	HandleFile    string
 
 	BitlyAccessToken      string
 	TwitterOauthToken     string
@@ -30,11 +32,12 @@ type site struct {
 	TwitterConsumerSecret string
 }
 
-func newSite(db *bolt.DB, index bleve.Index, conn *irc.Conn, channel, baseURL, htpasswdFile,
-	bitlyAccessToken, twitterOauthToken, twitterOauthSecret, twitterConsumerKey,
+func newSite(db *bolt.DB, index bleve.Index, conn *irc.Conn, channel, baseURL,
+	htpasswdFile, handleFile, bitlyAccessToken, twitterOauthToken, twitterOauthSecret, twitterConsumerKey,
 	twitterConsumerSecret string) *site {
 	s := &site{
 		db: db, index: index, BaseURL: baseURL, HtpasswdFile: htpasswdFile,
+		HandleFile:            handleFile,
 		BitlyAccessToken:      bitlyAccessToken,
 		TwitterOauthToken:     twitterOauthToken,
 		TwitterOauthSecret:    twitterOauthSecret,
@@ -286,11 +289,33 @@ func (s site) shortenLink(url string) string {
 	return strings.Trim(bitlyLink, "\n\r ")
 }
 
-func twitterHandleFromNick(nick string) string {
-	// TODO: not really implemented yet.
-	// need to get the list from a config file.
-	// for now, just stick an '@` on there...
-	return "@" + nick
+func (s site) twitterHandleFromNick(nick string) string {
+	if s.HandleFile == "" {
+		// no handle file defined, so we can't do anything
+		return ""
+	}
+	d, err := ioutil.ReadFile(s.HandleFile)
+	if err != nil {
+		log.Println("error reading handle file:", err)
+		return ""
+	}
+	lines := strings.Split(string(d), "\n")
+	mapping := map[string]string{}
+	for _, line := range lines {
+		line = strings.Trim(line, " ")
+		if line == "" {
+			continue
+		}
+		parts := strings.Split(line, ",")
+		if len(parts) == 2 {
+			mapping[parts[0]] = parts[1]
+		}
+	}
+	if handle, ok := mapping[nick]; ok {
+		return "via @" + handle
+	}
+	// not in the mapping
+	return ""
 }
 
 func (s *site) tweetLink(nick, url, title string) {
@@ -317,15 +342,14 @@ func (s *site) tweetLink(nick, url, title string) {
 		// TODO: let user know that credentials are bad
 		return
 	}
-	tweet := fmt.Sprintf("%s: %s via %s", url, title,
-		twitterHandleFromNick(normalizeNick(nick)))
+	handle := s.twitterHandleFromNick(normalizeNick(nick))
+	tweet := fmt.Sprintf("%s: %s%s", url, title, handle)
 	chars := len(tweet)
 	if chars > 140 {
 		ellipsis := "..."
 		truncate := chars + len(ellipsis) - 140
 		truncatedTitle := title[:len(title)-truncate]
-		tweet = fmt.Sprintf("%s: %s via %s", url, truncatedTitle,
-			twitterHandleFromNick(normalizeNick(nick)))
+		tweet = fmt.Sprintf("%s: %s via %s", url, truncatedTitle, handle)
 	}
 
 	_, err = client.Update(tweet, nil)
@@ -334,7 +358,6 @@ func (s *site) tweetLink(nick, url, title string) {
 		log.Println(err)
 		return
 	}
-	log.Println("successfully tweeted")
 }
 
 func (s site) recentLinks() []linkEntry {

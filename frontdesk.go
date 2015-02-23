@@ -25,6 +25,7 @@ type config struct {
 	Port         int
 	BaseURL      string `envconfig:"BASE_URL"`
 	HtpasswdFile string `envconfig:"HTPASSWD"`
+	HandleFile   string `envconfig:"HANDLE_FILE"`
 
 	BitlyAccessToken      string `envconfig:"BITLY_ACCESS_TOKEN"`
 	TwitterOauthToken     string `envconfig:"TWITTER_OAUTH_TOKEN"`
@@ -92,6 +93,8 @@ func main() {
 	c := irc.SimpleClient(cfg.Nick)
 
 	s := newSite(db, index, c, cfg.Channel, cfg.BaseURL, cfg.HtpasswdFile,
+		cfg.HandleFile,
+
 		cfg.BitlyAccessToken,
 
 		cfg.TwitterOauthToken, cfg.TwitterOauthSecret,
