@@ -283,7 +283,7 @@ func (s site) shortenLink(url string) string {
 		// TODO: inform the user that we couldn't shorten their link
 		return url
 	}
-	return bitlyLink
+	return strings.Trim(bitlyLink, "\n\r ")
 }
 
 func twitterHandleFromNick(nick string) string {
