@@ -11,6 +11,7 @@ Frontdesk sits in your IRC channel and does some basic helpful things:
   for searching.
 * it saves links that are posted to the channel and exposes those
   through a web interface and RSS feed
+* tweets when someone posts a link
 * if someone in the channel mentions someone that isn't currently
   online, frontdesk takes note and delivers the message to that user
   the next time they come back into the channel.
@@ -31,6 +32,8 @@ Starting it with `.url` is a phenny convention that frontdesk keeps
 for the sake of consistency. Frontdesk will see that and send you a
 message that your link has been saved. It will then appear on the
 recent links page in the web interface and in the RSS feed.
+
+If you've configured Twitter, it will also tweet this link.
 
 ### Off The Record
 
@@ -90,6 +93,29 @@ If this is configured, it will look for an htpasswd file at this
 location and use that to set up HTTP Basic auth for the chat
 logs. (The assumption is that you still want your links page open to
 the public)
+
+### FRONTDESK_HANDLE_FILE
+
+File containing mapping of IRC nicks to twitter handles so it can
+credit the appropriate user when tweeting a link. Contents would look
+something like:
+
+    nick1,mytwitterhandle
+    nick2,another
+
+Ie, just a very simple CSV file with IRC nick, and Twitter handle as
+columns.
+
+### FRONTDESK_TWITTER_OAUTH_TOKEN, FRONTDESK_TWITTER_OAUTH_SECRET, FRONTDESK_TWITTER_CONSUMER_KEY, FRONTDESK_TWITTER_CONSUMER_SECRET
+
+Oauth credentials for connecting to Twitter. You will need to
+[register](https://apps.twitter.com/) and create a new token.
+
+### FRONTDESK_BITLY_ACCESS_TOKEN
+
+Access token for Bitly, if you want your links shortened. Again,
+[regist](https://bitly.com/a/oauth_apps) and create a generic access
+token.
 
 ## Bugs/Issues
 
