@@ -312,7 +312,7 @@ func (s site) twitterHandleFromNick(nick string) string {
 		}
 	}
 	if handle, ok := mapping[nick]; ok {
-		return "via @" + handle
+		return " via @" + handle
 	}
 	// not in the mapping
 	return ""
