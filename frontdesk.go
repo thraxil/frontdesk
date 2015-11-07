@@ -1,4 +1,4 @@
-package main
+package main // import "github.com/thraxil/frontdesk"
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/abbot/go-http-auth"
+	auth "github.com/abbot/go-http-auth"
 	"github.com/blevesearch/bleve"
 	"github.com/boltdb/bolt"
 	irc "github.com/fluffle/goirc/client"
